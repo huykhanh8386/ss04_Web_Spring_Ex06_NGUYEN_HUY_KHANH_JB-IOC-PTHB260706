@@ -1,0 +1,56 @@
+package com.example.exsession04.Models.Services;
+
+import com.example.exsession04.Models.Entities.CoureStatus;
+import com.example.exsession04.Models.Entities.Course;
+import com.example.exsession04.Models.Entities.Student;
+import com.example.exsession04.Models.Entities.StudentEnrollment;
+import com.example.exsession04.Models.Repositories.CourseRepository;
+import com.example.exsession04.Models.Repositories.StudentEnrollmentRepository;
+import com.example.exsession04.Models.Repositories.StudentRepository;
+import com.example.exsession04.Models.Responses.CourseEnrollmentResponse;
+import com.example.exsession04.Models.Responses.CourseStudentResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class StudentEnrollmentService {
+    private final StudentEnrollmentRepository studentEnrollmentRepository;
+    private final StudentRepository studentRepository;
+    private final CourseRepository courseRepository;
+    public CourseEnrollmentResponse enrollStudent(Long studentId, Long courseId) {
+        Course course = courseRepository.findById(courseId).orElseThrow(() -> new RuntimeException("Course not found"));
+        boolean active = courseRepository.existsByIdAndStatus(courseId, CoureStatus.active);
+        if (!active) {
+            throw new RuntimeException("Course is not ACTIVE");
+        }
+        Student student = studentRepository.findById(studentId).orElseThrow(() -> new RuntimeException("Student not found"));
+        boolean exists = studentEnrollmentRepository.existsByCourseIdAndStudentId(courseId, studentId);
+        if (exists) {
+            throw new RuntimeException("Student already enrolled in this course");
+        }
+        StudentEnrollment enrollment = new StudentEnrollment();
+        enrollment.setStudent(student);
+        enrollment.setCourse(course);
+        enrollment.setEnrollAt(LocalDateTime.now());
+        StudentEnrollment saved = studentEnrollmentRepository.save(enrollment);
+        return new CourseEnrollmentResponse(saved.getStudent().getId(), saved.getCourse().getId(), saved.getEnrollAt());
+    }
+    public void dropoutStudent(Long courseId, Long studentId) {
+        courseRepository.findById(courseId).orElseThrow(() -> new RuntimeException("Course not found"));
+        boolean exists = studentEnrollmentRepository.existsByCourseIdAndStudentId(courseId, studentId);
+        if (!exists) {
+            throw new RuntimeException("Student is not enrolled in this course");
+        }
+        StudentEnrollment enrollment = studentEnrollmentRepository.findByCourseIdAndStudentId(courseId, studentId).orElseThrow(() -> new RuntimeException("Enrollment not found"));
+        studentEnrollmentRepository.delete(enrollment);
+    }
+    public List<CourseStudentResponse> searchStudents(Long courseId, String search) {
+        courseRepository.findById(courseId).orElseThrow(() -> new RuntimeException("Course not found"));
+        List<StudentEnrollment> enrollments = studentEnrollmentRepository.searchStudents(courseId, search);
+        return enrollments.stream().map(enrollment -> new CourseStudentResponse(enrollment.getStudent().getId(), enrollment.getStudent().getName(), enrollment.getStudent().getEmail(), enrollment.getEnrollAt())).toList();
+    }
+}
