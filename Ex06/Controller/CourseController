@@ -1,0 +1,76 @@
+package com.example.exsession04.Controller;
+
+import com.example.exsession04.Models.Entities.Course;
+import com.example.exsession04.Models.Request.CourseCreateRequest;
+import com.example.exsession04.Models.Request.CourseEnrollmentRequest;
+import com.example.exsession04.Models.Request.CourseUpdateRequest;
+import com.example.exsession04.Models.Responses.ApiResponse;
+import com.example.exsession04.Models.Responses.CourseEnrollmentResponse;
+import com.example.exsession04.Models.Responses.CourseResponse;
+import com.example.exsession04.Models.Responses.CourseStudentResponse;
+import com.example.exsession04.Models.Services.CourseService;
+import com.example.exsession04.Models.Services.StudentEnrollmentService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/v3/courses")
+public class CourseController {
+    private final CourseService courseService;
+    private final StudentEnrollmentService studentEnrollmentService;
+    @GetMapping
+    public ResponseEntity<?> getAllCourses() {
+        List<CourseResponse> courses = courseService.findAllCourses();
+        return ResponseEntity.ok(new ApiResponse<>(true, "Get courses successfully", courses));
+    }
+    @PostMapping
+    public ResponseEntity<?> createCourse(@RequestBody CourseCreateRequest request) {
+        try {
+            courseService.createCourse(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(true, "Create course successfully", null));
+        }catch (RuntimeException e){
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false,e.getMessage(), null));
+        }
+    }
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateCourse(@PathVariable Long id, @RequestBody CourseUpdateRequest request) {
+        try {
+            courseService.updateCourse(id, request);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Update course successfully", null));
+        }catch (RuntimeException e){
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false,e.getMessage(), null));
+        }
+    }
+    @PostMapping("/{courseId}/enrollments")
+    public ResponseEntity<?> enrollStudent(@PathVariable Long courseId, @RequestBody CourseEnrollmentRequest request) {
+        try {
+            CourseEnrollmentResponse response = studentEnrollmentService.enrollStudent(request.getStudentId(), courseId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(true, "Enroll student successfully", response));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+    @DeleteMapping("/{courseId}/enrollments/students/{studentId}")
+    public ResponseEntity<?> dropoutStudent(@PathVariable Long courseId, @PathVariable Long studentId) {
+        try {
+            studentEnrollmentService.dropoutStudent(courseId, studentId);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+    @GetMapping("/{courseId}/enrollments/students")
+    public ResponseEntity<?> searchStudents(@PathVariable Long courseId, @RequestParam(defaultValue = "") String search) {
+        try {
+            List<CourseStudentResponse> students = studentEnrollmentService.searchStudents(courseId, search);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Get students successfully", students));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+}
