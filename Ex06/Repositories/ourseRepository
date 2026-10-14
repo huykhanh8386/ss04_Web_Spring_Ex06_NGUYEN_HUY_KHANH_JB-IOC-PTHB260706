@@ -1,0 +1,12 @@
+package com.example.exsession04.Models.Repositories;
+
+import ch.qos.logback.core.status.Status;
+import com.example.exsession04.Models.Entities.CoureStatus;
+import com.example.exsession04.Models.Entities.Course;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface CourseRepository extends JpaRepository<Course, Long> {
+    boolean existsByIdAndStatus(Long id, CoureStatus status);
+}
