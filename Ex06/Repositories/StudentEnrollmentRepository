@@ -1,0 +1,27 @@
+package com.example.exsession04.Models.Repositories;
+
+import com.example.exsession04.Models.Entities.CoureStatus;
+import com.example.exsession04.Models.Entities.Student;
+import com.example.exsession04.Models.Entities.StudentEnrollment;
+import org.hibernate.internal.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface StudentEnrollmentRepository extends JpaRepository<StudentEnrollment, Long> {
+    boolean existsByCourseIdAndStudentId(Long courseId, Long studentId);
+    Optional<StudentEnrollment>
+    findByCourseIdAndStudentId(Long courseId, Long studentId);
+    @Query("""
+            SELECT se
+            FROM StudentEnrollment se
+            WHERE se.course.id = :courseId
+            AND LOWER(se.student.name)
+            LIKE LOWER(CONCAT('%', :search, '%'))
+            """)
+    List<StudentEnrollment> searchStudents(@Param("courseId") Long courseId, @Param("search") String search);
+}
